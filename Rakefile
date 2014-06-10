@@ -18,7 +18,7 @@ Jeweler::Tasks.new do |gem|
   gem.homepage = "http://github.com/patrickhno/gtk"
   gem.license = "MIT"
   gem.summary = %Q{GTK FFI bindings for Ruby}
-  gem.description = %Q{GTK FFI bindings for Ruby. Depends on nothing but GTK}
+  gem.description = %Q{GTK FFI bindings for Ruby}
   gem.email = "patrick.hanevold@gmail.com"
   gem.authors = ["Patrick Hanevold"]
   # dependencies defined in Gemfile
