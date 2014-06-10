@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
     "Rakefile",
     "VERSION",
     "examples/custom_cell_renderer.rb",
+    "gtk.gemspec",
     "lib/gtk.rb",
     "lib/gtk/bin.rb",
     "lib/gtk/buttons_type.rb",
