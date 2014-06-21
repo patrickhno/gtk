@@ -32,17 +32,12 @@ view.append_column(col)
 
 class MyCustomCell < Gtk::CellRenderer
 
+  FIXED_WIDTH  = 100
+  FIXED_HEIGHT = 10
+
   def get_size cell, widget, cell_area
-    _xpad = FFI::MemoryPointer.new(:int,1)
-    _ypad = FFI::MemoryPointer.new(:int,1)
-    _xalign = FFI::MemoryPointer.new(:int,1)
-    _yalign = FFI::MemoryPointer.new(:int,1)
-    Gtk::Lib.gtk_cell_renderer_get_padding(cell.native,_xpad,_ypad)
-    Gtk::Lib.gtk_cell_renderer_get_alignment(cell.native,_xalign,_yalign)
-    xpad = _xpad.read_int
-    ypad = _ypad.read_int
-    xalign = _xpad.read_int
-    yalign = _ypad.read_int
+    xpad,ypad = padding
+    xalign,yalign = alignment
 
     calc_width  = xpad * 2 + FIXED_WIDTH
     calc_height = ypad * 2 + FIXED_HEIGHT

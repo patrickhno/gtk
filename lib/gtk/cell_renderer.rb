@@ -63,9 +63,6 @@ module Gtk
 
   class CellRenderer < Widget
 
-    FIXED_WIDTH  = 100
-    FIXED_HEIGHT = 10
-
     def render cell, cr, widget, background_area, cell_area, expose_area, flags
     end
     def get_size cell, widget, cell_area
@@ -176,6 +173,21 @@ module Gtk
     def self.type
       @type
     end
+
+    def padding
+      xpad = FFI::MemoryPointer.new(:int,1)
+      ypad = FFI::MemoryPointer.new(:int,1)
+      Gtk::Lib.gtk_cell_renderer_get_padding(native, xpad, ypad)
+      [xpad.read_int, ypad.read_int]
+    end
+
+    def alignment
+      xalign = FFI::MemoryPointer.new(:int,1)
+      yalign = FFI::MemoryPointer.new(:int,1)
+      Gtk::Lib.gtk_cell_renderer_get_alignment(native,xalign,yalign)
+      [xalign.read_int, yalign.read_int]
+    end
+
   end
 end
 
