@@ -2,7 +2,7 @@ source "http://rubygems.org"
 gem 'ffi'
 group :development do
   gem "gtk", :path => '.'
-  gem "cairo", :git => 'https://github.com/patrickhno/rcairo.git'
+  gem "cairo", :git => 'https://github.com/rcairo/rcairo.git'
   gem "activesupport"
   gem "bacon", ">= 0"
   gem "rdoc", "~> 3.12"

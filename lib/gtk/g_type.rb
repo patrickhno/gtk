@@ -1,6 +1,9 @@
 module Gtk
   class GType < Enums
-    FLOAT   = 56
-    STRING  = 64
+    BOOL    =  5<<2
+    INT     =  6<<2
+    ULONG   =  9<<2
+    FLOAT   = 14<<2
+    STRING  = 16<<2
   end
 end

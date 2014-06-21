@@ -8,9 +8,13 @@ module Gtk
 
   class Window < Bin
     def initialize(type = :toplevel)
-      @native = Lib.gtk_window_new(
-        WindowType[type]
-      )
+      @native = if type.is_a?(FFI::Pointer)
+        type
+      else
+        Lib.gtk_window_new(
+          WindowType[type]
+        )
+      end
     end
   end
 end

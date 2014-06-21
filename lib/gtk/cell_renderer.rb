@@ -1,33 +1,32 @@
+
+require 'ostruct'
+
 module Gtk
   module Lib
-#    attach_function :gtk_cell_renderer_new, [], :pointer
     attach_method :gtk_cell_renderer_get_state, [:pointer, :pointer, :int], :int
     attach_method :gtk_cell_renderer_get_padding, [:pointer, :pointer, :pointer], :void
     attach_method :gtk_cell_renderer_set_padding, [:pointer, :int, :int], :void
     attach_method :gtk_cell_renderer_get_alignment, [:pointer, :pointer, :pointer], :void
     attach_function :gtk_cell_renderer_get_type, [], :ulong
-  end
+    callback :finalize, [:pointer], :void
 
-  class CellRenderer < Widget
     class GObjectClass < FFI::Struct
+
       layout  :g_type_class, :long,
               :construct_properties, :pointer,
               :constructor, :pointer,
               :set_property, :pointer,
-              :get_property, :pointer
+              :get_property, :pointer,
+              :dispose, :pointer,
+              :finalize, :finalize
     end
 
-    class GtkCellRendererClass < FFI::Struct
+    class CellRenderer < FFI::Struct
+      layout  :parent_instance, Glib::Lib::GObject,
+              :priv, :pointer
+    end
 
-      # layout  :get_request_mode, :get_request_mode_function,
-      #         :get_preferred_width, :get_preferred_width_function,
-      #         :get_preferred_height_for_width, :get_preferred_height_for_width_function,
-      #         :get_preferred_height, :get_preferred_height_function,
-      #         :get_preferred_width_for_height, :get_preferred_width_for_height_function,
-      #         :get_aligned_area, :get_aligned_area_function,
-      #         :get_size, :get_size_function,
-      #         :render, :render_function
-
+    class CellRendererClass < FFI::Struct
       SIZE_OF_GInitiallyUnownedClass = 136
 
       layout  :parent_class, [:uint8, SIZE_OF_GInitiallyUnownedClass],
@@ -38,89 +37,130 @@ module Gtk
               :get_preferred_width_for_height, :pointer,
               :get_aligned_area, :pointer,
               :get_size, :pointer,
-              :render, :pointer
-
-    # gboolean           (* activate)                        (GtkCellRenderer      *cell,
-    #                                                         GdkEvent             *event,
-    #                                                         GtkWidget            *widget,
-    #                                                         const gchar          *path,
-    #                                                         const GdkRectangle   *background_area,
-    #                                                         const GdkRectangle   *cell_area,
-    #                                                         GtkCellRendererState  flags);
-    # GtkCellEditable *  (* start_editing)                   (GtkCellRenderer      *cell,
-    #                                                         GdkEvent             *event,
-    #                                                         GtkWidget            *widget,
-    #                                                         const gchar          *path,
-    #                                                         const GdkRectangle   *background_area,
-    #                                                         const GdkRectangle   *cell_area,
-    #                                                         GtkCellRendererState  flags);
-
-    # /* Signals */
-    # void (* editing_canceled) (GtkCellRenderer *cell);
-    # void (* editing_started)  (GtkCellRenderer *cell,
-    #          GtkCellEditable *editable,
-    #          const gchar     *path);
-    end
-
-    GetProperty = FFI::Function.new(:void,[:pointer, :uint, :pointer, :pointer]) do |_object,property_id,_value,_pspec|
-      raise "get_property"
-    end
-    SetProperty = FFI::Function.new(:void,[:pointer, :uint, :pointer, :pointer]) do |_object,property_id,_value,_pspec|
-      raise "set_property"
-    end
-
-    def self.inherited sub
-      sub.const_set(:ClassInit,FFI::Function.new(:void,[:pointer]) do |_klass|
-        cell_class = GtkCellRendererClass.new(_klass)
-        object_class = GObjectClass.new(_klass)
-        cell_class[:render] = Render
-        cell_class[:get_size] = GetSize
-        object_class[:set_property] = SetProperty
-        object_class[:get_property] = GetProperty
-        sub.init(cell_class,object_class)
-      end)
-    end
-
-    InstanceInit = FFI::Function.new(:void,[:pointer]) do |_klass|
-      Gtk::CellRenderer.new(FFI::Pointer.new(_klass)).set_padding 2,2
-    end
-
-    def self.type_info
-      @type_info ||= begin
-        type_info = Gtk::Lib::GTypeInfo.new
-        type_info[:class_size] = 264
-        type_info[:class_init] = self.const_get(:ClassInit)
-        type_info[:instance_init] = InstanceInit
-        type_info[:instance_size] = 40
-        type_info
-      end
+              :render, :pointer,
+              :activate, :pointer,
+              :start_editing, :pointer,
+              :editing_canceled, :pointer,
+              :editing_started, :pointer,
+              :priv, :pointer,
+              :reserved2, :pointer,
+              :reserved3, :pointer,
+              :reserved4, :pointer
     end
 
     class CairoRectangleInt < FFI::Struct
       layout :x, :int, :y, :int, :width, :int, :height, :int;
     end
 
-    Render = FFI::Function.new(:void,[:pointer, :pointer, :pointer, :pointer, :pointer, :int]) do |_cell,_cr,_widget,_background_area,_cell_area,flags|
-      Cairo::Context.new(FFI::Pointer.new(_cr)) do |cr|
-        instances[_cell.address].render(
-          cr,
-          Gtk::Widget.new(FFI::Pointer.new(_widget)),
-          CairoRectangleInt.new(FFI::Pointer.new(_background_area)),
-          CairoRectangleInt.new(FFI::Pointer.new(_cell_area)),
-          flags
-        )
-      end
+    class CustomCellRendererInstance < FFI::Struct
+      layout  :parent, Gtk::Lib::CellRenderer,
+              :instance, :ulong
+    end
+  end
+
+  class CellInstance < OpenStruct
+  end
+
+  class CellRenderer < Widget
+
+    FIXED_WIDTH  = 100
+    FIXED_HEIGHT = 10
+
+    def render cell, cr, widget, background_area, cell_area, expose_area, flags
+    end
+    def get_size cell, widget, cell_area
     end
 
-    GetSize = FFI::Function.new(:void,[:pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer]) do |_cell,_widget,_cell_area,_x_offset,_y_offset,_width,_height|
-      x_offset,y_offset,width,height = instances[_cell.address].get_size(
-        Gtk::Widget.new(FFI::Pointer.new(_widget)),
-        _cell_area.null? ? nil : CairoRectangleInt.new(FFI::Pointer.new(_cell_area))
+    def self.inherited sub
+      @type_info = Gtk::Lib::GTypeInfo.new
+
+      @type_info[:class_size] = @class_size = Gtk::Lib::CellRendererClass.size
+
+      @type_info[:class_init] = @class_init = FFI::Function.new(:void,[:pointer]) do |klass|
+        @parent_class = Gtk::Lib::GObjectClass.new(Gtk::Lib.g_type_class_peek_parent(klass))
+        @cell_class = Gtk::Lib::CellRendererClass.new(klass)
+        @object_class = Gtk::Lib::GObjectClass.new(klass)
+        @cell_class[:render] = FFI::Function.new(:void,[:pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :int]) do |cell,_cr,_widget,_background_area,_cell_area,_expose_area,flags|
+          native = Gtk::Lib::CustomCellRendererInstance.new(cell)
+          widget = Gtk::Widget.new(FFI::Pointer.new(_widget))
+          background_area = Gtk::Lib::CairoRectangleInt.new(_background_area)
+          cell_area = Gtk::Lib::CairoRectangleInt.new(FFI::Pointer.new(_cell_area))
+          expose_area = Gtk::Lib::CairoRectangleInt.new(FFI::Pointer.new(_expose_area))
+
+          cell_instance = ObjectSpace._id2ref(native[:instance])
+          cell_instance.native = native
+
+          Cairo::Context.wrap(_cr) do |cr|
+            instances[cell.address].render cell_instance,cr,widget,background_area,cell_area,expose_area,flags
+          end
+        end
+
+        @cell_class[:get_size] = @get_size = FFI::Function.new(:void,[:pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer]) do |cell,_widget,_cell_area,x_offset,y_offset,width,height|
+          native = Gtk::Lib::CustomCellRendererInstance.new(cell)
+          widget = Gtk::Widget.new(FFI::Pointer.new(_widget))
+          cell_area = Gtk::Lib::CairoRectangleInt.new(FFI::Pointer.new(_cell_area))
+
+          cell_instance = ObjectSpace._id2ref(native[:instance])
+          cell_instance.native = native
+
+          _x_offset, _y_offset, _width, _height = instances[cell.address].get_size(cell_instance, widget, cell_area)
+
+          x_offset.write_int _x_offset if _x_offset
+          y_offset.write_int _y_offset if _y_offset
+          width.write_int _width       if _width
+          height.write_int _height     if _height
+        end
+
+        @object_class[:finalize] = @finalize = FFI::Function.new(:void,[:pointer]) do |object|
+          @parent_class[:finalize].call(object)
+        end
+
+        @object_class[:set_property] = FFI::Function.new(:void,[:pointer, :ulong, :pointer, :pointer]) do |cell,param_id,value,psec|
+          native = Gtk::Lib::CustomCellRendererInstance.new(cell)
+          case param_id
+          when 1
+            native[:instance] = Gtk::Lib.g_value_get_ulong(value)
+          else
+            raise "hell"
+          end
+        end
+
+        @object_class[:get_property] = @get_property = FFI::Function.new(:void,[:pointer, :ulong, :pointer, :pointer]) do |cell,param_id,value,psec|
+          native = Gtk::Lib::CustomCellRendererInstance.new(cell)
+          case param_id
+          when 1
+            Gtk::Lib.g_value_set_ulong(value,native[:instance])
+          else
+            raise "hell"
+          end
+        end
+
+        Gtk::Lib.g_object_class_install_property(@object_class,
+                                         1,
+                                         Gtk::Lib.g_param_spec_ulong("instance",
+                                                              "Instance",
+                                                               "Ruby object instance",
+                                                               0, 0xffffffffffffffff, 1,
+                                                               Gtk::G_PARAM_READWRITE))
+
+      end
+      @type_info[:instance_size] = @instance_size = Gtk::Lib::CustomCellRendererInstance.size
+      @type_info[:instance_init] = @instance_init = FFI::Function.new(:void,[:pointer]) do |cell|
+        native = Gtk::Lib::CustomCellRendererInstance.new(cell)
+        Gtk::Lib.gtk_cell_renderer_set_padding(native,2,2)
+      end
+
+      cell_type = Gtk::Lib.gtk_cell_renderer_get_type()
+      sub.type = Gtk::Lib.g_type_register_static(cell_type,
+        sub.name,
+        @type_info.to_ptr,
+        0
       )
-      _x_offset.write_int(x_offset) if x_offset
-      _y_offset.write_int(x_offset) if y_offset
-      _width.write_int(width) unless _width.null?
-      _height.write_int(height) unless _height.null?
+    end
+
+    def initialize
+      super Gtk::Lib.g_object_new(self.class.type,nil)
+      instances[native.address] = self
     end
 
     def self.instances
@@ -130,34 +170,11 @@ module Gtk
       self.class.instances
     end
 
-    def initialize pointer
-      raise "hell" unless pointer.is_a?(FFI::Pointer)
-      @native = pointer
-      instances[native.address] = self
+    def self.type= type
+      @type=type
     end
     def self.type
-      @type ||= Lib.gtk_cell_renderer_text_get_type()
-    end
-    def get_padding
-      xpad = FFI::MemoryPointer.new(:int,1)
-      ypad = FFI::MemoryPointer.new(:int,1)
-      Lib.gtk_cell_renderer_get_padding(native,xpad,ypad)
-      [xpad.read_int,ypad.read_int]
-    end
-    def set_padding xpad,ypad
-      Lib.gtk_cell_renderer_set_padding(native,xpad,ypad)
-    end
-    def get_alignment
-      xpad = FFI::MemoryPointer.new(:int,1)
-      ypad = FFI::MemoryPointer.new(:int,1)
-      Lib.gtk_cell_renderer_get_alignment(native,xpad,ypad)
-      [xpad.read_int,ypad.read_int]
-    end
-    # def initialize
-    #   @native = Lib.gtk_cell_renderer_new()
-    # end
-    def self.type
-      Lib.gtk_cell_renderer_get_type()
+      @type
     end
   end
 end

@@ -1,4 +1,5 @@
 require 'ffi'
+require 'active_support/inflector'
 
 module Gtk
   class Enums
@@ -60,8 +61,26 @@ module Gtk
 end
 
 module Glib
-  extend FFI::Library
-  ffi_lib 'glib-2.0'
+
+  module Lib
+    extend FFI::Library
+    ffi_lib 'glib-2.0'
+
+    attach_function :g_timeout_add, [:ulong, :pointer, :pointer], :ulong
+
+    class GObject < FFI::Struct
+      layout  :g_type_instance, :pointer, #Gtk::Lib::GTypeInstance,
+              :ref_count, :ulong,
+              :qdata, :pointer
+    end
+  end
+
+  def self.timeout_add(interval,&block)
+    @callback ||= FFI::Function.new(:bool, [:pointer]) do |data|
+      block.call
+    end
+    Lib.g_timeout_add(interval,@callback,nil)
+  end
 end
 
 module GObject
@@ -75,8 +94,19 @@ module Gtk
     end
 
     attach_function :g_signal_connect_data, [:pointer, :string, :pointer, :pointer, :pointer, :long], :ulong
+    attach_function :g_param_spec_string, [:string, :string, :string, :string, :int], :pointer
     attach_function :g_param_spec_double, [:string, :string, :string, :double, :double, :double, :int], :pointer
+    attach_function :g_param_spec_int, [:string, :string, :string, :int, :int, :int, :int], :pointer
+    attach_function :g_param_spec_ulong, [:string, :string, :string, :ulong, :ulong, :ulong, :ulong], :pointer
     attach_function :g_type_register_static, [:ulong, :string, :pointer, :int], :ulong
+    attach_function :g_type_add_instance_private, [:ulong, :ulong], :int
+    attach_function :g_intern_static_string, [:string], :string
+    attach_function :g_type_register_static_simple, [:ulong, :string, :ulong, :pointer, :ulong, :pointer, :ulong], :long
+    attach_function :g_type_name, [:ulong], :string
+    attach_function :g_type_class_peek_parent, [:pointer], :pointer
+    attach_function :g_value_get_double, [:pointer], :double
+    attach_function :g_value_get_int, [:pointer], :int
+    attach_function :g_value_get_ulong, [:pointer], :ulong
 
     attach_function :g_object_class_install_property, [:pointer, :uint, :pointer], :void
     attach_function :g_object_new, [:ulong, :string, :varargs], :pointer
@@ -109,16 +139,16 @@ module Gtk
       @type = Lib.g_type_register_static(
         superclass.type,
         type_name,
-        cell_progress_info.ref,
+        cell_progress_info.to_ptr,
         0
       )
     end
 
     def signal_connect(name,&block)
-      callback = FFI::Function.new(:void, [:pointer]) do |data|
+      @callback ||= FFI::Function.new(:void, [:pointer]) do |data|
         block.call
       end
-      Lib.g_signal_connect_data(native,name,callback,nil,nil,0)
+      Lib.g_signal_connect_data(native,name,@callback,nil,nil,0)
     end
 
     def unref
