@@ -1,5 +1,3 @@
-require 'ffi'
-require 'cairo'
 require 'gtk'
 
 Gtk.init

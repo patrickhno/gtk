@@ -1,4 +1,5 @@
 require 'ffi'
+require 'cairo'
 require 'active_support/inflector'
 
 module Gtk
